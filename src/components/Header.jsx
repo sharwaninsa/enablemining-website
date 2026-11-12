@@ -9,46 +9,50 @@ function Dropdown({ label, items, base }) {
   const ref = useRef(null);
 
   useEffect(() => {
-    const onDoc = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) {
+    const handleOutsideClick = (event) => {
+      if (ref.current && !ref.current.contains(event.target)) {
         setOpen(false);
       }
     };
 
-    const onKey = (e) => {
-      if (e.key === 'Escape') setOpen(false);
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setOpen(false);
+      }
     };
 
-    document.addEventListener('mousedown', onDoc);
-    document.addEventListener('keydown', onKey);
+    document.addEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('keydown', handleKeyDown);
 
     return () => {
-      document.removeEventListener('mousedown', onDoc);
-      document.removeEventListener('keydown', onKey);
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('keydown', handleKeyDown);
     };
   }, []);
 
   return (
     <div className="dropdown" ref={ref}>
       <button
+        type="button"
         className="dropdown__trigger"
         aria-haspopup="true"
         aria-expanded={open}
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => setOpen((previous) => !previous)}
       >
-        {label} <i className="bx bx-chevron-down" aria-hidden="true" />
+        {label}
+        <i className="bx bx-chevron-down" aria-hidden="true" />
       </button>
 
       {open && (
         <div className="dropdown__menu" role="menu">
-          {items.map((it) => (
+          {items.map((item) => (
             <Link
-              key={it.slug}
-              to={`${base}/${it.slug}`}
+              key={item.slug}
+              to={`${base}/${item.slug}`}
               role="menuitem"
               onClick={() => setOpen(false)}
             >
-              {it.title}
+              {item.title}
             </Link>
           ))}
         </div>
@@ -62,11 +66,15 @@ export default function Header() {
   const [drawer, setDrawer] = useState(false);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 8);
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 8);
+    };
 
-    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('scroll', handleScroll, { passive: true });
 
-    return () => window.removeEventListener('scroll', onScroll);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
   }, []);
 
   useEffect(() => {
@@ -77,15 +85,37 @@ export default function Header() {
     };
   }, [drawer]);
 
+  useEffect(() => {
+    if (!drawer) return;
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setDrawer(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [drawer]);
+
+  const closeDrawer = () => setDrawer(false);
+
   return (
     <header className={`header ${scrolled ? 'scrolled' : ''}`}>
       <div className="container header__inner">
-
-        <Link to="/" className="logo" aria-label="EnableMining home">
-          <img height="40" src={logo} alt="EnableMining" />
+        <Link
+          to="/"
+          className="logo"
+          aria-label="EnableMining home"
+        >
+          <img src={logo} height="40" alt="EnableMining" />
         </Link>
 
-        <nav className="nav" aria-label="Primary">
+        {/* Desktop Navigation */}
+        <nav className="nav" aria-label="Primary navigation">
           <NavLink to="/">Home</NavLink>
 
           <Dropdown
@@ -108,85 +138,101 @@ export default function Header() {
           </Link>
         </nav>
 
+        {/* Mobile Menu Button */}
         <button
+          type="button"
           className="hamburger"
-          aria-label="Open menu"
+          aria-label="Open navigation menu"
+          aria-expanded={drawer}
+          aria-controls="mobile-navigation"
           onClick={() => setDrawer(true)}
         >
           <i className="bx bx-menu" aria-hidden="true" />
         </button>
-
       </div>
 
+      {/* Mobile Navigation Drawer */}
       {drawer && (
         <div
           className="drawer"
+          id="mobile-navigation"
           role="dialog"
           aria-modal="true"
-          aria-label="Menu"
+          aria-label="Mobile navigation"
         >
           <div className="drawer__head">
-            <span className="logo">
-              Enable<span>Mining</span>
-            </span>
+            <Link
+              to="/"
+              className="logo"
+              aria-label="EnableMining home"
+              onClick={closeDrawer}
+            >
+              <img src={logo} height="40" alt="EnableMining" />
+            </Link>
 
             <button
+              type="button"
               className="hamburger"
-              aria-label="Close menu"
-              onClick={() => setDrawer(false)}
+              aria-label="Close navigation menu"
+              onClick={closeDrawer}
             >
               <i className="bx bx-x" aria-hidden="true" />
             </button>
           </div>
 
-          <nav aria-label="Mobile">
+          <nav aria-label="Mobile navigation links">
+            <Link to="/" onClick={closeDrawer}>
+              Home
+            </Link>
 
             <details>
               <summary>Expertise</summary>
 
-              {expertise.map((e) => (
-                <Link
-                  key={e.slug}
-                  to={`/expertise/${e.slug}`}
-                  onClick={() => setDrawer(false)}
-                >
-                  {e.title}
-                </Link>
-              ))}
+              <div className="drawer__submenu">
+                {expertise.map((item) => (
+                  <Link
+                    key={item.slug}
+                    to={`/expertise/${item.slug}`}
+                    onClick={closeDrawer}
+                  >
+                    {item.title}
+                  </Link>
+                ))}
+              </div>
             </details>
 
             <details>
               <summary>Industries</summary>
 
-              {industries.map((i) => (
-                <Link
-                  key={i.slug}
-                  to={`/industries/${i.slug}`}
-                  onClick={() => setDrawer(false)}
-                >
-                  {i.title}
-                </Link>
-              ))}
+              <div className="drawer__submenu">
+                {industries.map((item) => (
+                  <Link
+                    key={item.slug}
+                    to="/industries"
+                    onClick={closeDrawer}
+                  >
+                    {item.title}
+                  </Link>
+                ))}
+              </div>
             </details>
 
-            <Link to="/about" onClick={() => setDrawer(false)}>
+            <Link to="/about" onClick={closeDrawer}>
               About Us
             </Link>
 
-            <Link to="/careers" onClick={() => setDrawer(false)}>
+            <Link to="/careers" onClick={closeDrawer}>
               Careers
             </Link>
-
           </nav>
 
           <Link
             to="/contact"
             className="btn btn-primary"
-            onClick={() => setDrawer(false)}
+            onClick={closeDrawer}
           >
             Contact Us
           </Link>
-
         </div>
       )}
     </header>
